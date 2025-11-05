@@ -1,7 +1,7 @@
 #include "UltrasonicSensor.h"
 
 UltrasonicSensor::UltrasonicSensor(uint8_t trig, uint8_t echo)
-    : trigPin(trig), echoPin(echo), lastInterval(2), actualInterval(2)
+    : trigPin(trig), echoPin(echo)
 {
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
