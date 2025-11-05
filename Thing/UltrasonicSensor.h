@@ -1,7 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
-class UltrasonicSensor {
+class UltrasonicSensor
+{
 public:
     UltrasonicSensor(uint8_t trig, uint8_t echo);
 

@@ -1,15 +1,16 @@
 #pragma once
 #include <WiFi.h>
 
-class WifiManager {
+class WifiManager
+{
 public:
-    WifiManager(const char* ssid, const char* password);
+    WifiManager(const char *ssid, const char *password);
     void connect();
 
-    WiFiClient& getClient();
+    WiFiClient &getClient();
 
 private:
-    const char* ssid;
-    const char* password;
+    const char *ssid;
+    const char *password;
     WiFiClient wifiClient;
 };
