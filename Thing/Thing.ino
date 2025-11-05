@@ -4,13 +4,13 @@
 #include"UltrasonicSensor.h"
 
 // Wifi Connection
-const char *ssid = "TIGO RIVERO";
-const char *password = "a36bb1e335c28";
+const char *ssid = "ENTEL RIVERO";
+const char *password = "28c353pec1bb3";
 // MQTT Broker
 const char *mqttBrokerURL = "c877f40f18e34e858972f14b8a14d0aa.s1.eu.hivemq.cloud";
 const uint16_t mqttPort = 8883;
-const char *mqttUserName = "mqtt-thing";
-const char *mqttUserPassword = "N9'9qQr_;f9TEr*";
+const char *mqttUserName = "thing";
+const char *mqttUserPassword = "N9'9qQr0ro>?";
 // Topics
 const char *sensorTopic = "sensors/ultrasonic/distance";
 const char *actuatorTopic = "actuators/servo/state";
