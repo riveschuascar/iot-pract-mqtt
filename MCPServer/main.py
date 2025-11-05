@@ -1,28 +1,40 @@
-from typing import Any, Optional
+import dotenv
+import ssl
 import asyncio
+from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
-from asyncio_mqtt import Client, MqttError
+from aiomqtt import Client, MqttError
+import os
 
-mcp = FastMCP("nlp-mqtt-controller")
+dotenv.load_dotenv()
 
-# MQTT Config
-MQTT_BROKER = "c877f40f18e34e858972f14b8a14d0aa.s1.eu.hivemq.cloud"
-MQTT_PORT = 8883
+mcp = FastMCP("mqtt-controller")
 
-SENSOR_TOPIC = "sensors/ultrasonic/distance"
-ACTUATOR_TOPIC = "actuators/servo/state"
+# MQTT Config desde .env
+MQTT_BROKER = os.getenv("MQTT_BROKER")
+MQTT_PORT = int(os.getenv("MQTT_PORT", "8883"))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
+
+SENSOR_TOPIC = os.getenv("SENSOR_TOPIC", "sensors/ultrasonic/distance")
+ACTUATOR_TOPIC = os.getenv("ACTUATOR_TOPIC", "actuators/servo/state")
 
 mqtt_client: Client | None = None
 last_distance: Optional[str] = None
 
-
 async def ensure_mqtt_connected() -> Client:
     global mqtt_client
     if mqtt_client is None:
-        mqtt_client = Client(MQTT_BROKER, port=MQTT_PORT, tls=True)
+        ssl_context = ssl.create_default_context()
+        mqtt_client = Client(
+            MQTT_BROKER,
+            port=MQTT_PORT,
+            username=MQTT_USERNAME,
+            password=MQTT_PASSWORD,
+            tls_context=ssl_context
+        )
         await mqtt_client.connect()
     return mqtt_client
-
 
 async def sensor_listener():
     """
@@ -35,7 +47,6 @@ async def sensor_listener():
         async for msg in messages:
             last_distance = msg.payload.decode().strip()
 
-
 def interpret_command(command: str) -> tuple[str, str] | str:
     """
     Traduce lenguaje natural a acciones MQTT o solicitudes.
@@ -43,23 +54,28 @@ def interpret_command(command: str) -> tuple[str, str] | str:
     text = command.lower()
 
     # Consultar distancia
-    if "distancia" in text or "medida" in text or "detectada" in text:
+    if any(term in text for term in ["distancia", "medida", "detectada", "sensor"]):
         return "READ_DISTANCE"
 
-    # Servo rápido
-    if ("servo" in text) and ("rápido" in text or "rapido" in text):
-        return ACTUATOR_TOPIC, "2"
+    # Acciones relacionadas al servo
+    if "servo" in text or "mover" in text or "girar" in text or "activar" in text:
+        
+        # Movimiento rápido
+        if any(term in text for term in ["rápido", "rapido", "veloz", "máxima", "maxima", "rápidamente"]):
+            return ACTUATOR_TOPIC, "2"
+        
+        # Movimiento lento
+        if "lento" in text or "suave" in text:
+            return ACTUATOR_TOPIC, "1"
+        
+        # Detener
+        if any(term in text for term in ["detener", "parar", "alto", "stop", "quieto"]):
+            return ACTUATOR_TOPIC, "0"
 
-    # Servo lento
-    if ("servo" in text) and ("lento" in text):
+        # Si llega aquí, velocidad media por defecto
         return ACTUATOR_TOPIC, "1"
 
-    # Parar servo
-    if ("servo" in text) and ("detener" in text or "parar" in text or "alto" in text):
-        return ACTUATOR_TOPIC, "0"
-
     return "UNKNOWN"
-
 
 @mcp.tool()
 async def process_command(message: str) -> str:
@@ -86,13 +102,11 @@ async def process_command(message: str) -> str:
     except MqttError as e:
         return f"Error enviando comando MQTT: {e}"
 
-
 def main():
     loop = asyncio.get_event_loop()
-    # Ejecutar lector del sensor en paralelo
     loop.create_task(sensor_listener())
+    print(f"Conectando a MQTT Broker en {MQTT_BROKER}:{MQTT_PORT}:{SENSOR_TOPIC}:{ACTUATOR_TOPIC}")
     mcp.run(transport="stdio")
-
 
 if __name__ == "__main__":
     main()
